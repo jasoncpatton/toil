@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from builtins import str
 
+import sys
 import os
 import logging
 import time
@@ -101,7 +102,6 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             job_runtimes = {}
             for ad in ads:
                 jobID = ad['ToilJobID']
-                if 
                 runtime = time.time() - ad['EnteredCurrentStatus']
                 job_runtimes[jobID] = runtime
 
@@ -127,14 +127,16 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             except StopIteration:
                 pass
             else:
-                logger.debug(
+                logger.warning(
                     "Warning: multiple ads returned using constraint: {0}".format(
                         requirements))
 
+            # If the job is complete, then JobStatus == 4
             if ad['JobStatus'] != 4:
                 logger.debug("HTCondor job {0} has not completed".format(batchJobID))
                 return None
             else:
+                # Remove the job from the Schedd
                 schedd.act(htcondor.JobAction.Remove, str(batchJobID))
                 return int(ad['ExitCode'])
 
@@ -169,6 +171,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
                     raise
                 else:
                     schedd = htcondor.Schedd(schedd_ad)
+                    
             # otherwise assume the schedd is on the local machine
             else:
                 logger.debug("connecting to HTCondor Schedd on local machine")
@@ -183,12 +186,13 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
 
             return schedd
 
-    # override method to remove resource constraints from non-local batch system
+    # override method to remove resource request constraints
+    # HTCondor will handle resource requests
     def __init__(self, config, maxCores, maxMemory, maxDisk):
         self.config = config
         self.environment = {}
+        
         self.currentJobs = set()
-
         self.newJobsQueue = Queue()
         self.updatedJobsQueue = Queue()
         self.killQueue = Queue()
@@ -202,9 +206,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
         self._getRunningBatchJobIDsTimestamp = None
         self._getRunningBatchJobIDsCache = {}
     
-        
     # override issueBatchJob method so we can get disk allocation requests
-    # and remove resource constraints
+    # and remove resource request constraints
     def issueBatchJob(self, jobNode):
         # Avoid submitting internal jobs to the batch queue, handle locally
         if jobNode.jobName.startswith(CWL_INTERNAL_JOBS):
@@ -221,3 +224,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             logger.debug("Issued the job command: %s with job id: %s ",
                              jobNode.command, str(jobID))
         return jobID
+
+    @classmethod
+    def obtainSystemConstants(cls):
+        logger.debug("HTCondor does not need obtainSystemConstants to assess global cluster resources.")
+        return None, None
