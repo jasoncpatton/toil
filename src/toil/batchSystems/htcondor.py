@@ -68,8 +68,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             cpu = int(math.ceil(cpu)) # integer CPUs only
             memory = float(memory)/1024 # memory in KB
             disk = float(disk)/1024 # disk in KB
-
-            executable = command.split(1)[0]
+            
+            executable = command.split()[0]
             arguments = command[len(executable):].lstrip()
 
             sub = {
