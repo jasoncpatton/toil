@@ -75,7 +75,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             sub = {
                 'executable': executable,
                 'arguments': arguments,
-                'request_cpu': '{0}'.format(cpu),
+                'request_cpus': '{0}'.format(cpu),
                 'request_memory': '{0}KB'.format(memory),
                 'request_disk': '{0}KB'.format(disk),
                 'leave_in_queue': 'True',
