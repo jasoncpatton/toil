@@ -7,7 +7,7 @@ import logging
 import time
 import math
 
-from six.moves.queue import Queue 
+from six.moves.queue import Queue
 from threading import Thread
 
 try:
@@ -33,10 +33,10 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
         # and so we can get disk allocation requests and ceil the cpu request
         def createJobs(self, newJob):
             activity = False
-            
+
             if newJob is not None:
                 self.waitingJobs.append(newJob)
-            
+
             # Queue jobs as necessary:
             while len(self.waitingJobs) > 0:
                 activity = True
@@ -61,14 +61,14 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
 
                 # Add to allocated resources
                 self.allocatedCpus[jobID] = int(math.ceil(cpu))
-                
+
             return activity
 
         def prepareSubmission(self, cpu, memory, disk, jobID, command):
             cpu = int(math.ceil(cpu)) # integer CPUs only
             memory = float(memory)/1024 # memory in KB
             disk = float(disk)/1024 # disk in KB
-            
+
             executable = command.split()[0].encode('ascii')
             arguments = command[len(executable):].lstrip().encode('ascii')
 
@@ -171,7 +171,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
                     raise
                 else:
                     schedd = htcondor.Schedd(schedd_ad)
-                    
+
             # otherwise assume the schedd is on the local machine
             else:
                 logger.debug("connecting to HTCondor Schedd on local machine")
@@ -191,7 +191,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
     def __init__(self, config, maxCores, maxMemory, maxDisk):
         self.config = config
         self.environment = {}
-        
+
         self.currentJobs = set()
         self.newJobsQueue = Queue()
         self.updatedJobsQueue = Queue()
@@ -205,7 +205,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             registry.defaultBatchSystem())()(config, maxCores, maxMemory, maxDisk)
         self._getRunningBatchJobIDsTimestamp = None
         self._getRunningBatchJobIDsCache = {}
-    
+
     # override issueBatchJob method so we can get disk allocation requests
     # and remove resource request constraints
     def issueBatchJob(self, jobNode):
@@ -229,3 +229,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
     def obtainSystemConstants(cls):
         logger.debug("HTCondor does not need obtainSystemConstants to assess global cluster resources.")
         return None, None
+
+    @classmethod
+    def getWaitDuration(self):
+        return 5
