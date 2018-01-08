@@ -29,7 +29,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
 
     class Worker(AbstractGridEngineBatchSystem.Worker):
 
-        # overridde createJobs method so we can use htcondor.Submit objects
+        # override createJobs method so we can use htcondor.Submit objects
         # and so we can get disk allocation requests and ceil the cpu request
         def createJobs(self, newJob):
             activity = False
@@ -69,8 +69,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             memory = float(memory)/1024 # memory in KB
             disk = float(disk)/1024 # disk in KB
             
-            executable = command.split()[0]
-            arguments = command[len(executable):].lstrip()
+            executable = command.split()[0].encode('ascii')
+            arguments = command[len(executable):].lstrip().encode('ascii')
 
             sub = {
                 'executable': executable,
