@@ -69,8 +69,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             memory = float(memory)/1024 # memory in KB
             disk = float(disk)/1024 # disk in KB
 
-            executable = command.split()[0].encode('ascii')
-            arguments = command[len(executable):].lstrip().encode('ascii')
+            executable = command.split()[0].encode('utf8')
+            arguments = command[len(executable):].lstrip().encode('utf8')
 
             sub = {
                 'executable': executable,
@@ -78,7 +78,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
                 'request_cpus': '{0}'.format(cpu),
                 'request_memory': '{0}KB'.format(memory),
                 'request_disk': '{0}KB'.format(disk),
-                'leave_in_queue': 'True',
+                'leave_in_queue': '(JobStatus == 4)',
+                'periodic_remove': '(JobStatus == 5)',
                 '+IsToilJob': 'True',
                 '+ToilJobID': '{0}'.format(jobID),
                 }
