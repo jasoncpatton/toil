@@ -420,6 +420,18 @@ def needs_slurm(test_item):
     else:
         return unittest.skip("Install Slurm to include this test.")(test_item)
 
+def needs_htcondor(test_item):
+    """
+    Use a decorator before test classes or methods to only run them if the HTCondor Python bindings are installed.
+    """
+    test_item = _mark_test('htcondor', test_item)
+    try:
+        import htcondor
+    except ImportError:
+        return unittest.skip("Install the HTCondor Python bindings to include this test.")(test_item)
+    else:
+        return test_item
+
 
 def needs_encryption(test_item):
     """

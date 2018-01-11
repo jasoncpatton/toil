@@ -103,6 +103,8 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             job_runtimes = {}
             for ad in ads:
                 jobID = ad['ToilJobID']
+                if not (jobID in self.runningJobs):
+                    continue
                 runtime = time.time() - ad['EnteredCurrentStatus']
                 job_runtimes[jobID] = runtime
 
