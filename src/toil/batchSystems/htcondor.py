@@ -83,7 +83,7 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             submit_parameters = {
                 'executable': '/bin/sh',
                 'transfer_executable': 'False',
-                'arguments': "-c '{0}'".format(command),
+                'arguments': '''"-c '{0}'"'''.format(command),
                 'transfer_input_files': ' '.join(input_files),
                 'request_cpus': '{0}'.format(cpu),
                 'request_memory': '{0:.3f}KB'.format(memory),
@@ -177,19 +177,19 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             # if env variables set, use them to find the schedd
             if condor_host and schedd_name:
                 logger.debug(
-                    "connecting to HTCondor Schedd {0} using Collector at {1}".format(
+                    "Connecting to HTCondor Schedd {0} using Collector at {1}".format(
                     schedd_name, condor_host))
                 try:
                     schedd_ad = htcondor.Collector(condor_host).locate(
                         htcondor.DaemonTypes.Schedd, schedd_name)
                 except IOError:
                     logger.error(
-                        "could not connect to HTCondor Collector at {0}".format(
+                        "Could not connect to HTCondor Collector at {0}".format(
                             condor_host))
                     raise
                 except ValueError:
                     logger.error(
-                        "could not find HTCondor Schedd with name {0}".format(
+                        "Could not find HTCondor Schedd with name {0}".format(
                             schedd_name))
                     raise
                 else:
@@ -197,14 +197,14 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
 
             # otherwise assume the schedd is on the local machine
             else:
-                logger.debug("connecting to HTCondor Schedd on local machine")
+                logger.debug("Connecting to HTCondor Schedd on local machine")
                 schedd = htcondor.Schedd()
 
             # ping the schedd
             try:
                 schedd.xquery(limit = 0)
             except RuntimeError:
-                logger.error("could not connect to HTCondor Schedd")
+                logger.error("Could not connect to HTCondor Schedd")
                 raise
 
             return schedd
