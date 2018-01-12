@@ -147,14 +147,16 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
                 logger.debug("HTCondor job {0} completed with exit code {1}".format(
                     batchJobID, ad['ExitCode']))
                 # Remove the job from the Schedd
-                schedd.act(htcondor.JobAction.Remove, str(batchJobID))
+                job_spec = 'ClusterId == {0}'.format(batchJobID)
+                schedd.act(htcondor.JobAction.Remove, job_spec)
                 return int(ad['ExitCode'])
 
             elif ad['JobStatus'] == 5: # Job held
                 logger.error("HTCondor job {0} was held: '{1} (sub code {2})'".format(
                     batchJobID, ad['HoldReason'], ad['HoldReasonSubCode']))
                 # Remove the job from the Schedd
-                schedd.act(htcondor.JobAction.Remove, str(batchJobID))
+                job_spec = 'ClusterId == {0}'.format(batchJobID)
+                schedd.act(htcondor.JobAction.Remove, job_spec)
                 return 1
 
             else: # Job still running or idle or doing something else
