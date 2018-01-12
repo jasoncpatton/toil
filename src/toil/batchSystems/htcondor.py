@@ -65,26 +65,35 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             return activity
 
         def prepareSubmission(self, cpu, memory, disk, jobID, command):
-            cpu = int(math.ceil(cpu)) # integer CPUs only
+            cpu = int(math.ceil(cpu)) # integer CPUs
             memory = float(memory)/1024 # memory in KB
             disk = float(disk)/1024 # disk in KB
 
-            executable = command.split()[0].encode('utf8')
-            arguments = command[len(executable):].lstrip().encode('utf8')
+            # workaround htcondor python bindings unicode bug
+            command = command.encode('utf8')
 
-            sub = {
-                'executable': executable,
-                'arguments': arguments,
+            # execute the entire command as /bin/sh -c "command"
+            # for now, only transfer the executable and only transfer it
+            # if its path is explicitly referenced to in the command
+            input_files = []
+            tokens = command.split()
+            if os.path.isfile(tokens[0]):
+                input_files.append(tokens[0])
+
+            submit_parameters = {
+                'executable': '/bin/sh',
+                'transfer_executable': 'False',
+                'arguments': "-c '{0}'".format(command),
+                'transfer_input_files': ' '.join(input_files),
                 'request_cpus': '{0}'.format(cpu),
-                'request_memory': '{0}KB'.format(memory),
-                'request_disk': '{0}KB'.format(disk),
+                'request_memory': '{0:.3f}KB'.format(memory),
+                'request_disk': '{0:.3f}KB'.format(disk),
                 'leave_in_queue': '(JobStatus == 4)',
-                'periodic_remove': '(JobStatus == 5)',
                 '+IsToilJob': 'True',
                 '+ToilJobID': '{0}'.format(jobID),
                 }
 
-            return htcondor.Submit(sub)
+            return htcondor.Submit(submit_parameters)
 
         def submitJob(self, subObj):
             schedd = self.connectSchedd()
@@ -111,14 +120,14 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
             return job_runtimes
 
         def killJob(self, jobID):
-            clusterID = self.getBatchSystemID(jobID)
             schedd = connectSchedd()
-            schedd.act(htcondor.JobAction.Remove, str(clusterID))
+            job_spec = 'ToilJobID == {0}'.format(jobID)
+            schedd.act(htcondor.JobAction.Remove, job_spec)
 
         def getJobExitCode(self, batchJobID):
             logger.debug("Getting exit code for HTCondor job {0}".format(batchJobID))
             requirements = '(ClusterId == {0})'.format(batchJobID)
-            projection = ['JobStatus', 'ExitCode']
+            projection = ['JobStatus', 'ExitCode', 'HoldReason', 'HoldReasonSubCode']
 
             schedd = self.connectSchedd()
             ads = schedd.xquery(requirements = requirements,
@@ -131,17 +140,26 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
                 pass
             else:
                 logger.warning(
-                    "Warning: multiple ads returned using constraint: {0}".format(
+                    "Multiple HTCondor ads returned using constraint: {0}".format(
                         requirements))
 
-            # If the job is complete, then JobStatus == 4
-            if ad['JobStatus'] != 4:
-                logger.debug("HTCondor job {0} has not completed".format(batchJobID))
-                return None
-            else:
+            if ad['JobStatus'] == 4: # Job completed
+                logger.debug("HTCondor job {0} completed with exit code {1}".format(
+                    batchJobID, ad['ExitCode']))
                 # Remove the job from the Schedd
                 schedd.act(htcondor.JobAction.Remove, str(batchJobID))
                 return int(ad['ExitCode'])
+
+            elif ad['JobStatus'] == 5: # Job held
+                logger.error("HTCondor job {0} was held: '{1} (sub code {2})'".format(
+                    batchJobID, ad['HoldReason'], ad['HoldReasonSubCode']))
+                # Remove the job from the Schedd
+                schedd.act(htcondor.JobAction.Remove, str(batchJobID))
+                return 1
+
+            else: # Job still running or idle or doing something else
+                logger.debug("HTCondor job {0} has not completed".format(batchJobID))
+                return None
 
 
         """

@@ -709,7 +709,7 @@ class HTCondorBatchSystemTest(hidden.AbstractGridEngineBatchSystemTest):
                                        maxDisk=1e9)
 
     def tearDown(self):
-        super(HTCondorBatchSystem, self).tearDown()
+        super(HTCondorBatchSystemTest, self).tearDown()
 
 class SingleMachineBatchSystemJobTest(hidden.AbstractBatchSystemJobTest):
     """
