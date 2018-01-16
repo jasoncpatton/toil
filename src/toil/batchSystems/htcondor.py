@@ -10,12 +10,6 @@ import math
 from six.moves.queue import Queue
 from threading import Thread
 
-try:
-    from toil.cwl.cwltoil import CWL_INTERNAL_JOBS
-except ImportError:
-    # CWL extra not installed
-    CWL_INTERNAL_JOBS = ()
-
 from toil.batchSystems.abstractGridEngineBatchSystem import AbstractGridEngineBatchSystem
 from toil.batchSystems import registry
 
@@ -292,14 +286,13 @@ class HTCondorBatchSystem(AbstractGridEngineBatchSystem):
     # and remove resource request constraints
     def issueBatchJob(self, jobNode):
         # Avoid submitting internal jobs to the batch queue, handle locally
-        if jobNode.jobName.startswith(CWL_INTERNAL_JOBS):
-            jobID = self.localBatch.issueBatchJob(jobNode)
+        localID = self.handleLocalJob(jobNode)
+        if localID:
+            return localID
         else:
             # HTCondor does not need us to check resources
             #self.checkResourceRequest(jobNode.memory, jobNode.cores, jobNode.disk)
-            with self.localBatch.jobIndexLock:
-                jobID = self.localBatch.jobIndex
-                self.localBatch.jobIndex += 1
+            jobID = self.getNextJobID()
             self.currentJobs.add(jobID)
             self.newJobsQueue.put((jobID, jobNode.cores, jobNode.memory, jobNode.disk,
                                        jobNode.jobName, jobNode.command))
