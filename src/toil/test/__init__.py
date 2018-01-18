@@ -427,8 +427,11 @@ def needs_htcondor(test_item):
     test_item = _mark_test('htcondor', test_item)
     try:
         import htcondor
+        htcondor.Collector(os.getenv('TOIL_HTCONDOR_COLLECTOR')).query(constraint='False')
     except ImportError:
         return unittest.skip("Install the HTCondor Python bindings to include this test.")(test_item)
+    except IOError:
+        return unittest.skip("HTCondor must be running to include this test.")(test_item)
     else:
         return test_item
 
